@@ -5,13 +5,31 @@ import BookingAdminNotificationEmail from './templates/booking-admin-notificatio
 import ContactNotificationEmail from './templates/contact-notification'
 import type { Booking, ContactMessage } from '../db/schema'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialize Resend to avoid build-time errors
+let resendClient: Resend | null = null
+function getResendClient() {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.warn('RESEND_API_KEY is not set - emails will not be sent')
+      return null
+    }
+    resendClient = new Resend(apiKey)
+  }
+  return resendClient
+}
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@phillymounting.com'
 const BUSINESS_EMAIL = process.env.BUSINESS_EMAIL || 'info@phillymounting.com'
 
 export async function sendBookingConfirmation(booking: Booking): Promise<void> {
   try {
+    const resend = getResendClient()
+    if (!resend) {
+      console.warn('Skipping booking confirmation email - Resend not configured')
+      return
+    }
+
     const html = await render(
       BookingConfirmationEmail({
         name: booking.name,
@@ -42,6 +60,12 @@ export async function sendBookingConfirmation(booking: Booking): Promise<void> {
 
 export async function sendBookingNotificationToAdmin(booking: Booking): Promise<void> {
   try {
+    const resend = getResendClient()
+    if (!resend) {
+      console.warn('Skipping admin notification email - Resend not configured')
+      return
+    }
+
     const html = await render(
       BookingAdminNotificationEmail({
         id: booking.id,
@@ -76,6 +100,12 @@ export async function sendBookingNotificationToAdmin(booking: Booking): Promise<
 
 export async function sendContactNotification(message: ContactMessage): Promise<void> {
   try {
+    const resend = getResendClient()
+    if (!resend) {
+      console.warn('Skipping contact notification email - Resend not configured')
+      return
+    }
+
     const html = await render(
       ContactNotificationEmail({
         id: message.id,
@@ -112,6 +142,12 @@ export async function sendBookingStatusUpdate(
   }
 
   try {
+    const resend = getResendClient()
+    if (!resend) {
+      console.warn('Skipping status update email - Resend not configured')
+      return
+    }
+
     const statusText = booking.status === 'confirmed' ? 'confirmed' : 'cancelled'
     const subject = `Your Appointment has been ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`
 
