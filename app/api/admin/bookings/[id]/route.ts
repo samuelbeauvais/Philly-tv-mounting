@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateBookingStatus, type Booking } from '@/lib/storage'
+import { getBookingById, updateBookingStatus } from '@/lib/db/queries'
+import type { Booking } from '@/lib/db/schema'
+import { sendBookingStatusUpdate } from '@/lib/email'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { status } = await request.json()
 
     if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
@@ -15,7 +18,19 @@ export async function PATCH(
       )
     }
 
-    const updatedBooking = await updateBookingStatus(params.id, status as Booking['status'])
+    // Get the old booking to know the previous status
+    const oldBooking = await getBookingById(id)
+    if (!oldBooking) {
+      return NextResponse.json(
+        { error: 'Booking not found' },
+        { status: 404 }
+      )
+    }
+
+    const oldStatus = oldBooking.status
+
+    // Update the booking status
+    const updatedBooking = await updateBookingStatus(id, status)
 
     if (!updatedBooking) {
       return NextResponse.json(
@@ -23,6 +38,9 @@ export async function PATCH(
         { status: 404 }
       )
     }
+
+    // Send status update email to customer (for confirmed/cancelled only)
+    await sendBookingStatusUpdate(updatedBooking, oldStatus)
 
     return NextResponse.json({ success: true, booking: updatedBooking })
   } catch (error) {

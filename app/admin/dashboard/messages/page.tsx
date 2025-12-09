@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { ContactMessage } from '@/lib/storage'
+import type { ContactMessage } from '@/lib/db/schema'
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<ContactMessage[]>([])

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createContactMessage, getContactMessages } from '@/lib/storage'
+import { createContactMessage, getContactMessages } from '@/lib/db/queries'
+import { sendContactNotification } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +25,8 @@ export async function POST(request: NextRequest) {
       message: body.message,
     })
 
-    // Here you could add email notification logic
-    // await sendContactNotificationEmail(message)
+    // Send email notification to admin
+    await sendContactNotification(message)
 
     return NextResponse.json({ success: true, message }, { status: 201 })
   } catch (error) {

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateMessageStatus, type ContactMessage } from '@/lib/storage'
+import { updateMessageStatus } from '@/lib/db/queries'
+import type { ContactMessage } from '@/lib/db/schema'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const { status } = await request.json()
 
     if (!['new', 'read', 'responded'].includes(status)) {
@@ -15,7 +17,7 @@ export async function PATCH(
       )
     }
 
-    const updatedMessage = await updateMessageStatus(params.id, status as ContactMessage['status'])
+    const updatedMessage = await updateMessageStatus(id, status)
 
     if (!updatedMessage) {
       return NextResponse.json(

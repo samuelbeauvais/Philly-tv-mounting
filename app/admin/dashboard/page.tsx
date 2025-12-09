@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { Booking } from '@/lib/storage'
+import type { Booking } from '@/lib/db/schema'
 
 export default function AdminDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([])

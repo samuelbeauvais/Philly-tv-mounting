@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createBooking, getBookings } from '@/lib/storage'
+import { createBooking, getBookings } from '@/lib/db/queries'
+import { sendBookingConfirmation, sendBookingNotificationToAdmin } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,8 +31,11 @@ export async function POST(request: NextRequest) {
       notes: body.notes || '',
     })
 
-    // Here you could add email notification logic
-    // await sendBookingConfirmationEmail(booking)
+    // Send email notifications
+    await Promise.all([
+      sendBookingConfirmation(booking),
+      sendBookingNotificationToAdmin(booking),
+    ])
 
     return NextResponse.json({ success: true, booking }, { status: 201 })
   } catch (error) {
